@@ -218,14 +218,14 @@ def train(train_dloader_list, model_list, classifier_list, optimizer_list, class
         domain_weight = update_domain_weight(domain_weight, epoch_domain_weight)
 
     # 源代码，可恢复
-    # # Model aggregation
-    # federated_average(model_list, domain_weight)
-    # # classifier_average
-    # federated_average(classifier_list, domain_weight)
+    # Model aggregation
+    federated_average(model_list, domain_weight)
+    # classifier_average
+    federated_average(classifier_list, domain_weight)
 
     # avg 消融实验
-    fedAvg(model_list)
-    fedAvg(classifier_list)
+    # fedAvg(model_list)
+    # fedAvg(classifier_list)
 
     # average featrue
     # feature_rep_num = [feature_rep[i] / target_num for i in range(source_domain_num)]
