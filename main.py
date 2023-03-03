@@ -2,6 +2,7 @@ import math
 import random
 
 import numpy as np
+from opacus import PrivacyEngine
 
 seed = 0
 random.seed(seed)
@@ -25,12 +26,12 @@ parser = argparse.ArgumentParser(description='K3DA Official Implement')
 # Dataset Parameters
 parser.add_argument("--config", default="ABIDE.yaml")
 parser.add_argument('-bp', '--base-path', default="../data/")
-parser.add_argument('--target-domain', default="USM", type=str, help="The target domain we want to perform domain adaptation")   #domains = ['Leuven', 'NYU', 'UCLA', 'UM', 'USM']
+parser.add_argument('--target-domain', default="NYU", type=str, help="The target domain we want to perform domain adaptation")   #domains = ['Leuven', 'NYU', 'UCLA', 'UM', 'USM']
 parser.add_argument('--source-domains', type=str, nargs="+", help="The source domains we want to use")
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 8)')
 parser.add_argument('--beta', default=0.01, type=float)
-parser.add_argument('--delta', default=0.9, type=float)
+parser.add_argument('--delta', default=0.85, type=float)
 parser.add_argument('--com', default=1, type=int)
 parser.add_argument('--tsne', default=False, type=bool)
 
@@ -152,6 +153,29 @@ def main(args=args, configs=configs):
         classifier_optimizer_schedulers.append(
             CosineAnnealingLR(classifier_optimizer, configs["TrainingConfig"]["total_epochs"],
                               eta_min=configs["TrainingConfig"]["learning_rate_end"]))
+
+    # 是否使用DP加密
+    if configs["UMDAConfig"]["is_dp"] == True:
+        for i in range(5):
+            privacy_engine = PrivacyEngine()
+            models[i], optimizers[i], train_dloaders[i] = privacy_engine.make_private(
+                module=models[i],
+                optimizer=optimizers[i],
+                data_loader=train_dloaders[i],
+                noise_multiplier=0.3,
+                max_grad_norm=1.0,
+                poisson_sampling=False,
+            )
+
+            classifiers[i], classifier_optimizers[i], _ = privacy_engine.make_private(
+                module=classifiers[i],
+                optimizer=classifier_optimizers[i],
+                data_loader=train_dloaders[i],
+                noise_multiplier=0.3,
+                max_grad_norm=1.0,
+            )
+
+
     # create the event to save log info
     if configs["UMDAConfig"]["sparsity_mmd"] == True:
         writer_log_dir = path.join("logs", configs["DataConfig"]["dataset"], "runs_contrastive_com_{}".format(args.com),
@@ -161,6 +185,9 @@ def main(args=args, configs=configs):
         writer_log_dir = path.join("logs", configs["DataConfig"]["dataset"], "runs_contrastive",
                                    "train_seed_{}_no_mmd".format(seed) + "_" +
                                    args.target_domain)
+
+
+
     print("create writer in {}".format(writer_log_dir))
     if os.path.exists(writer_log_dir):
         # flag = input("{} train_time:{} will be removed, input yes to continue:".format(
