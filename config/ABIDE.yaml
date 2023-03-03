@@ -10,7 +10,7 @@ TrainingConfig:
   batch_size: 1
   # The total data numbers we use in each epoch
   epoch_samples: 30000
-  total_epochs: 300
+  total_epochs: 3000
   # We decay learning rate from begin value to end value with cosine annealing schedule
   learning_rate_begin: 0.001
   learning_rate_end: 0.0001
@@ -24,6 +24,7 @@ UMDAConfig:
   sparsity_mmd: True
   # the communication rounds in decentralized training, can be set into [0.2, 0.5 ,1, N]
   communication_rounds: 1
+  is_dp: True
 
 
 
